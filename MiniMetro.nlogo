@@ -14,6 +14,13 @@ globals[
   AddPathValueEdit;
   askingID;
   recentID;
+
+  isGenerating
+  lineAsker
+  isDed
+
+  colorPalette; order of new line colors
+  colorsUsed;
 ]
 ;___INITIALIZE BREEDS__________________________________
 breed[paths path]
@@ -32,6 +39,24 @@ potentialStations; chain(list) of stations when joining multiple stations at onc
 pathsCreated; temporary list of all paths in an editing sequence
 vertexX;
 vertexY;
+segmentA;
+segmentB;
+]
+breed[segments segment]
+segments-own[
+  minX
+  minY
+  maxX
+  maxY
+  initX
+  initY
+  endX
+  endY
+  segmentType; beginning or end of path
+  path ;the path that the segment's a part of
+  m
+  b
+  isVertical
 ]
 breed[stations station]
 stations-own[
@@ -42,13 +67,21 @@ stations-own[
 breed[lines line]
 lines-own[
   lineStations;list of all stations
-  lineID
+  lineID;
+  linePaths;
+  isLooping;
 ]
 to setup
   ca
   reset-ticks
+
+  set colorPalette [yellow orange blue sky]
+  set colorsUsed 0
+
+  set isDed false
   set isAddPath false
   set isEditing false
+  set isGenerating false
   set trackWidth 30
   set stationsList (list)
   set pathIDList (list)
@@ -111,18 +144,26 @@ end
 to updatePath
   if beingEdited [;is it being edited?
     ifelse beingEdited and not(mouse-down?)[;if just done editing, now what?
-      set beingEdited false;not being edited anymore
       set isEditing false
+      set isGenerating true
+      set lineAsker self
       let originID ([stationID] of (item ((length potentialStations) - 1) potentialStations)); most recent station in sequence of paths
       ifelse any? stations in-radius (trackWidth / 2) with [not (containsID stationID myself)][; are there any stations to connect to that arent in the sequence? (used so can't have line go on same thing twice.)
         permanentPath min-one-of (stations in-radius (trackWidth / 2) with [not (containsID stationID myself)]) [distance myself]
+        set isAddPath true
+        set AddPathValueA (item ((length potentialStations) - 1) potentialStations);
+        set AddPathValueB min-one-of (stations in-radius (trackWidth / 2) with [not (containsID stationID myself)]) [distance myself]
+        set potentialStations lput (min-one-of (stations in-radius (trackWidth / 2) with [not (containsID stationID myself)]) [distance myself]) potentialStations
+        set AddPathValueColor colorLine
+        set AddPathValueEdit false
+        set isDed false
       ][
         set pathIDList remove-item ([pathID] of self) pathIDList
         let myID sIDA
         ask stationA [
           set connectingLines remove-item myID connectingLines
         ]
-        die
+        set isDed true
       ]
     ][
       ifelse any? stations in-radius (trackWidth / 2) with [not (containsID stationID myself)][
@@ -158,6 +199,7 @@ to updatePath
   highlightline xcor ycor sx sy
   set color 5
   pu
+
 end
 to permanentPath [B]
    let m 0
@@ -268,9 +310,19 @@ to renderPaths
     generatePath AddPathValueA AddPathValueB AddPathValueColor AddPathValueEdit
     ask askingID [
       set pathsCreated lput recentID pathsCreated
-    ]
-    set isAddPath false
+   ]
   ]
+  if isGenerating[
+    generateLine([xcor] of ([stationA] of lineAsker)) ([ycor] of ([stationA] of lineAsker))  ([colorLine] of lineAsker) ([potentialStations] of lineAsker)
+      if isDed[
+          ask lineAsker[
+            set beingEdited false;not being edited anymore
+            die
+          ]
+      ]
+   ]
+    set isGenerating false
+    set isAddPath false
 end
 ;___Main Loop_________________________________
 to go
@@ -296,7 +348,6 @@ to updateStations
   let clickedStation 0
   ask stations[
     ifelse (distancexy mouse-xcor mouse-ycor) < (trackWidth / 2) and mouse-down? and (color = white) and not(isEditing)[
-      set color yellow
       set clickedStation stationID
       set isClicked true
     ] [
@@ -304,22 +355,72 @@ to updateStations
     ]
   ]
   if isClicked[
-    generatePath (one-of stations with [stationID = clickedStation]) 0 green true
+    generatePath (one-of stations with [stationID = clickedStation]) 0 (item (colorsUsed mod (length colorPalette)) colorPalette) true
   ]
 end
 ;___Line Functions_________________________________
-to generateLine[x y lineColor]
+to generateLine[x y lineColor initalLines]
   create-lines 1[
+    setxy x y
+    set isLooping false
+    set lineID colorsUsed
     set color lineColor
-    set lineStations (list)
+    set lineStations initalLines
+    set linePaths (list)
+    set colorsUsed (colorsUsed + 1)
   ]
+end
+
+to addStation [newStation]
+  ifelse (item 0 lineStations) = newStation[
+    set isLooping true
+  ][
+    ifelse member? newStation lineStations[
+        show "error, added station already exsists"
+    ][
+      set lineStations lput newStation lineStations
+    ]
+
+  ]
+end
+;_____Segment functions______________________________
+to initializeSegment [station path segmentType]
+  set minX min xcor
+  set minY min ycor
+  set maxX max xcor
+  set maxY max ycor
+  set initX [xcor] of ([station] of path)
+  set endX [vertexX] of path
+  set initY [ycor] of ([station] of path)
+  set endY [vertexY] of path
+  set isVertical isVertical?
+end
+
+to findEqSeg
+  ifelse isVertical
+  [
+    set m (initX - endX) / (initY - endY)
+    set b initX - (initY * m)
+  ]
+  [
+    set m (initY - endY) / (initX - endX)
+    set b initY - (initX * m)
+  ]
+end
+
+to-report distPointSeg [m b]
+  report (abs ((m * mouse-xcor) + mouse-ycor + b)) / (sqrt ((a * a) + (b * b)))
+end
+
+to-report isVertical?
+  report minX = maxX
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-326
-62
-1135
-872
+403
+86
+1212
+896
 -1
 -1
 1.0
