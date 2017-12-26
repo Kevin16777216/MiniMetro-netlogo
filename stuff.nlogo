@@ -1,4 +1,3 @@
-<<<<<<< HEAD:MiniMetro.nlogo
 ;___Table of Contents__________________________________
 
 ;___INITIALIZE GLOBALS_________________________________
