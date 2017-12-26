@@ -30,6 +30,8 @@ sIDB;
 finalized;checks if the path should be added to final list
 potentialStations; chain(list) of stations when joining multiple stations at once
 pathsCreated; temporary list of all paths in an editing sequence
+vertexX;
+vertexY;
 ]
 breed[stations station]
 stations-own[
@@ -150,6 +152,8 @@ to updatePath
   canTurn sx sy
   let px xcor
   let py ycor
+  set vertexX px
+  set vertexY py
   highlightLine ox oy px py
   highlightline xcor ycor sx sy
   set color 5
@@ -312,10 +316,10 @@ to generateLine[x y lineColor]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-239
-61
-648
-471
+326
+62
+1135
+872
 -1
 -1
 1.0
@@ -328,10 +332,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--200
-200
--200
-200
+-400
+400
+-400
+400
 1
 1
 1
@@ -714,7 +718,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.2
+NetLogo 6.0.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
