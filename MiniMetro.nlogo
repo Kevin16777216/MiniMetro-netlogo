@@ -6,6 +6,14 @@ globals[
   trackWidth;width of track
   stationsList;array of all stations
   pathIDList;list of all paths made in order, to show proper overlap.
+
+  isAddPath;For Breed path to tell observer if adding path
+  AddPathValueA;
+  AddPathValueB;
+  AddPathValueColor;
+  AddPathValueEdit;
+  askingID;
+  recentID;
 ]
 ;___INITIALIZE BREEDS__________________________________
 breed[paths path]
@@ -20,6 +28,8 @@ pathID;ID used to track order of rendering paths for overlap
 sIDA;unique stationID used to check if multiple lines cross the same station
 sIDB;
 finalized;checks if the path should be added to final list
+potentialStations; chain(list) of stations when joining multiple stations at once
+pathsCreated; temporary list of all paths in an editing sequence
 ]
 breed[stations station]
 stations-own[
@@ -35,6 +45,7 @@ lines-own[
 to setup
   ca
   reset-ticks
+  set isAddPath false
   set isEditing false
   set trackWidth 30
   set stationsList (list)
@@ -52,14 +63,16 @@ to setup
 end
 
 ;___Path Functions_________________________________
-to generatePath [A B line-color]
+to generatePath [A B line-color isEdit]
   create-paths 1 [
     set color line-color
     set colorLine line-color
     set stationA A
     set pathID length pathIDList
     set pathIDList lput pathID pathIDList
-    set beingEdited mouse-down?
+    set recentID self
+    set beingEdited isEdit
+
     set size trackWidth
 
     setxy ([xcor] of stationA) ([ycor] of stationA)
@@ -69,26 +82,58 @@ to generatePath [A B line-color]
       set connectingLines lput myself connectingLines
     ]
     set sIDA m
-    if beingEdited[
+    ifelse beingEdited[
       set isEditing true
+      set potentialStations (list)
+      set pathsCreated (list)
+      set pathsCreated lput self pathsCreated
+      set potentialStations lput A potentialStations
       set finalized false
+    ][
+      permanentPath B
+
     ]
   ]
 end
+to-report containsID [ID caller]
+  let i 0
+  while [i < length ([potentialStations] of caller) ][
+    if  [stationID] of (item i ([potentialStations] of caller)) = ID [
+      report true
+    ]
+
+    set i (i + 1)
+  ]
+  report false
+end
 to updatePath
-  if beingEdited and not(mouse-down?)[
-    set beingEdited false
-    set isEditing false
-    let originID ([stationID] of stationA)
-    ifelse any? stations in-radius (trackWidth / 2) with [not (stationID = originID)][
-      permanentPath min-one-of (stations in-radius (trackWidth / 2) with [not (stationID = originID)]) [distance myself]
-    ][
-      set pathIDList remove-item pathID pathIDList
-      let myID sIDA
-      ask stationA[
-        set connectingLines remove-item myID connectingLines
+  if beingEdited [;is it being edited?
+    ifelse beingEdited and not(mouse-down?)[;if just done editing, now what?
+      set beingEdited false;not being edited anymore
+      set isEditing false
+      let originID ([stationID] of (item ((length potentialStations) - 1) potentialStations)); most recent station in sequence of paths
+      ifelse any? stations in-radius (trackWidth / 2) with [not (containsID stationID myself)][; are there any stations to connect to that arent in the sequence? (used so can't have line go on same thing twice.)
+        permanentPath min-one-of (stations in-radius (trackWidth / 2) with [not (containsID stationID myself)]) [distance myself]
+      ][
+        set pathIDList remove-item ([pathID] of self) pathIDList
+        let myID sIDA
+        ask stationA [
+          set connectingLines remove-item myID connectingLines
+        ]
+        die
       ]
-      die
+    ][
+      ifelse any? stations in-radius (trackWidth / 2) with [not (containsID stationID myself)][
+        set isAddPath true
+        set AddPathValueA (item ((length potentialStations) - 1) potentialStations);
+        set AddPathValueB min-one-of (stations in-radius (trackWidth / 2) with [not (containsID stationID myself)]) [distance myself]
+        set potentialStations lput (min-one-of (stations in-radius (trackWidth / 2) with [not (containsID stationID myself)]) [distance myself]) potentialStations
+        set AddPathValueColor colorLine
+        set AddPathValueEdit false
+        set askingID self
+      ][
+      ]
+
     ]
   ]
   let sx mouse-xcor
@@ -118,7 +163,7 @@ to permanentPath [B]
     ]
   set stationB B
   set finalized true
-    set sIDB m
+  set sIDB m
 end
 to dealMultiline
   ask stationA[
@@ -141,7 +186,11 @@ to highlightLine[ox oy px py]
   pu
 end
 to-report getDirection [x y]
-  setxy ([xcor] of stationA) ([ycor] of stationA)
+  ifelse beingEdited[
+    setxy ([xcor] of (item ((length potentialStations) - 1) potentialStations)) ([ycor] of (item ((length potentialStations) - 1) potentialStations))
+  ][
+    setxy ([xcor] of stationA) ([ycor] of stationA)
+  ]
   facexy x y
   report ((floor (heading / 22.5)) + 1)
 end
@@ -211,6 +260,13 @@ to renderPaths
     ]
     set pathCount (pathCount + 1)
   ]
+  if isAddPath[
+    generatePath AddPathValueA AddPathValueB AddPathValueColor AddPathValueEdit
+    ask askingID [
+      set pathsCreated lput recentID pathsCreated
+    ]
+    set isAddPath false
+  ]
 end
 ;___Main Loop_________________________________
 to go
@@ -244,7 +300,7 @@ to updateStations
     ]
   ]
   if isClicked[
-    generatePath (one-of stations with [stationID = clickedStation]) 0 green
+    generatePath (one-of stations with [stationID = clickedStation]) 0 green true
   ]
 end
 ;___Line Functions_________________________________
@@ -256,10 +312,10 @@ to generateLine[x y lineColor]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-209
-10
-1018
-820
+239
+61
+648
+471
 -1
 -1
 1.0
@@ -272,10 +328,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--400
-400
--400
-400
+-200
+200
+-200
+200
 1
 1
 1
@@ -658,7 +714,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.1
+NetLogo 6.0.2
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
