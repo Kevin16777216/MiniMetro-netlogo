@@ -1,3 +1,4 @@
+<<<<<<< HEAD:MiniMetro.nlogo
 ;___Table of Contents__________________________________
 
 ;___INITIALIZE GLOBALS_________________________________
@@ -369,6 +370,54 @@ to generateLine[x y lineColor initalLines]
     set linePaths (list)
     set colorsUsed (colorsUsed + 1)
   ]
+=======
+breed[segments segment]
+segments-own[
+  minX
+  minY
+  maxX
+  maxY
+  initX
+  initY
+  endX
+  endY
+  path ;the path that the segment's a part of
+  m
+  b
+  isVertical
+]
+
+to initializeSegment [station path]
+  set minX min xcor
+  set minY min ycor
+  set maxX max xcor
+  set maxY max ycor
+  set initX [xcor] of ([station] of path)
+  set endX [vertexX] of path
+  set initY [ycor] of ([station] of path)
+  set endY [vertexY] of path
+  set isVertical isVertical?
+end
+
+to findEqSeg
+  ifelse isVertical
+  [
+    set m (initX - endX) / (initY - endY)
+    set b initX - (initY * m)
+  ]
+  [
+    set m (initY - endY) / (initX - endX)
+    set b initY - (initX * m)
+  ]
+end
+
+to-report distPointSeg [m b]
+  report (abs ((m * mouse-xcor) + mouse-ycor + b)) / (sqrt ((a * a) + (b * b)))
+end
+
+to-report isVertical?
+  report minX = maxX
+>>>>>>> c173b709436560a8f6948b8d4c839715800b5cf3:stuff.nlogo
 end
 
 to addStation [newStation]
@@ -417,65 +466,38 @@ to-report isVertical?
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
+<<<<<<< HEAD:MiniMetro.nlogo
 403
 86
 1212
 896
+=======
+210
+10
+647
+448
+>>>>>>> c173b709436560a8f6948b8d4c839715800b5cf3:stuff.nlogo
 -1
 -1
-1.0
+13.0
 1
 10
 1
 1
 1
 0
+1
+1
+1
+-16
+16
+-16
+16
 0
 0
-1
--400
-400
--400
-400
-1
-1
 1
 ticks
 30.0
-
-BUTTON
-62
-171
-125
-204
-NIL
-setup
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-113
-105
-176
-138
-NIL
-go
-T
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -819,7 +841,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.1
+NetLogo 6.0.2
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
