@@ -75,9 +75,9 @@ to setup
   ca
   reset-ticks
   ask patches[
-    set pcolor 8
+    set pcolor [252 229 176]
   ]
-  set colorPalette [yellow orange blue sky]
+  set colorPalette [yellow orange blue sky green brown pink]
   set colorsUsed 0
 
   set isDed false
@@ -89,7 +89,9 @@ to setup
   set pathIDList (list)
   let m 0
   while [m < 5][
-    while
+    let rx 0
+    let ry 0
+
     generateStation random-xcor random-ycor
     set m (m + 1)
   ]
@@ -255,7 +257,7 @@ to highlightLine[ox oy px py]
   pu
   setxy ox oy
   set pen-size (size / 2)
-  set color white
+  set color (item colorLine colorPalette)
   pd
   setxy px py
   pu
