@@ -47,11 +47,13 @@ segmentB;
 endPath?;is this path ending the line?
 endDir; direction facing stationB
 startDir; direction facing stationA
+isReal
 ]
 breed[plasts plast]
 plasts-own[
   myPlastPath
   myPlastLine
+  localStation
   defX
   defY
   endType
@@ -61,6 +63,7 @@ stations-own[
   shapeType; what people get off here
   stationID;
   connectingLines; list of all lines that get here
+  endPointDir; list of all endpoint directions to avoid overlap
 ]
 breed[lines line]
 lines-own[
@@ -77,7 +80,7 @@ to setup
   ask patches[
     set pcolor [252 229 176]
   ]
-  set colorPalette [( orange blue sky green brown pink]
+  set colorPalette [yellow orange blue sky green brown pink]
   set colorsUsed 0
 
   set isDed false
@@ -105,8 +108,16 @@ end
 ;___Path Functions_________________________________
 to generatePath [A B line-color isEdit]
   create-paths 1 [
-    set color (item line-color colorPalette)
-    set colorLine line-color
+    set isReal true
+    ifelse line-color = length colorPalette[
+        set color grey
+        set colorLine 1337
+        set shape "stop"
+        set isReal false
+    ][
+        set color (item line-color colorPalette)
+        set colorLine line-color
+    ]
     set stationA A
     set pathID length pathIDList
     set pathIDList lput pathID pathIDList
@@ -153,7 +164,7 @@ to updatePath
       set isGenerating true
       set lineAsker self
       let originID ([stationID] of (item ((length potentialStations) - 1) potentialStations)); most recent station in sequence of paths
-      ifelse any? stations in-radius (trackWidth / 2) with [not (containsID stationID myself)][; are there any stations to connect to that arent in the sequence? (used so can't have line go on same thing twice.)
+      ifelse any? stations in-radius (trackWidth / 2) with [not (containsID stationID myself)] and isReal[; are there any stations to connect to that arent in the sequence? (used so can't have line go on same thing twice.)
         permanentPath min-one-of (stations in-radius (trackWidth / 2) with [not (containsID stationID myself)]) [distance myself]
         set atStation true
         set isAddPath true
@@ -177,7 +188,7 @@ to updatePath
         set isDed true
       ]
     ][
-      ifelse any? stations in-radius (trackWidth / 2) with [not (containsID stationID myself)] and (not atStation)[
+      ifelse any? stations in-radius (trackWidth / 2) with [not (containsID stationID myself)] and (not atStation) and isReal[
         set isAddPath true
         set AddPathValueA (item ((length potentialStations) - 1) potentialStations);
         set AddPathValueB min-one-of (stations in-radius (trackWidth / 2) with [not (containsID stationID myself)]) [distance myself]
@@ -187,7 +198,7 @@ to updatePath
         set askingID self
         set atStation true
       ][
-        ifelse any? stations in-radius (trackWidth / 2) with [stationID  = ([stationID] of (last [potentialStations] of myself)) ] and (length potentialStations > 1)[
+        ifelse any? stations in-radius (trackWidth / 2) with [stationID  = ([stationID] of (last [potentialStations] of myself)) ] and (length potentialStations > 1) and isReal[
           if atStation = false[
             set potentialStations remove-item (length potentialStations - 1) potentialStations
             set pathIDList remove (last pathsCreated) pathIDList
@@ -257,13 +268,21 @@ to highlightLine[ox oy px py]
   pu
   setxy ox oy
   set pen-size (size / 2)
-  set color (item colorLine colorPalette)
+  ifelse isReal[
+      set color (item colorLine colorPalette)
+  ][
+      set color gray
+  ]
   pd
   setxy px py
   pu
   setxy ox oy
   set pen-size (size / 3)
-  set color (item colorLine colorPalette)
+  ifelse isReal[
+    set color (item colorLine colorPalette)
+  ][
+    set color gray
+  ]
   pd
   setxy px py
   pu
@@ -379,6 +398,7 @@ to generateStation [x y]
     set stationID (length stationsList)
     set stationsList lput stationID stationsList
     set ConnectingLines (List)
+    set endPointDir (list)
   ]
 end
 to updateStations
@@ -438,14 +458,51 @@ to generatePlast [plastPath plastLine directionChooser]
     ifelse directionChooser = "e"[
       set heading [endDir] of myPlastPath
       setxy [xcor] of ([stationB] of plastPath) [ycor] of ([stationB] of plastPath)
+      set localStation ([stationB] of plastPath)
       set endType true
     ][
       set heading [startDir] of myPlastPath
       setxy [xcor] of ([stationA] of plastPath) [ycor] of ([stationA] of plastPath)
+      set localStation ([stationA] of plastPath)
       set endType false
     ]
+    let isDeleting false
+    ask localStation[
+      let ang 1
+      let dir 1
+      if (member? (([heading] of myself)  mod 360) endPointDir)[
+        while [(member? (([heading] of myself) mod 360) endPointDir) and (ang < 8)][
+          ask myself[
+            rt dir * 45 * ang
+          ]
+          set dir ( 0 - dir)
+          set ang (ang + 1)
+        ]
+      ]
+      ifelse (ang = 8)[
+        set isDeleting true;just delete previous segment and generate new plast based off old one! (argh)
+      ][
+        set endPointDir lput ([heading] of myself) endPointDir
+      ]
+    ]
+    if isDeleting[
+      ask myPlastLine[
+        set lineStations remove localStation lineStations
+        set linePaths remove myPlastPath linePaths
+      ]
+      ask [stationA] of plastPath[
+        set connectingLines remove myPlastPath connectingLines
+      ]
+      ask [stationB] of plastPath[
+        set connectingLines remove myPlastPath connectingLines
+      ]
+      ask plastPath[
+        set pathIDList remove self pathIDList
+        die
+      ]
+    ]
     fd trackWidth
-        set defX xcor
+    set defX xcor
     set defY ycor
   ]
 end
@@ -792,6 +849,14 @@ star
 false
 0
 Polygon -7500403 true true 151 1 185 108 298 108 207 175 242 282 151 216 59 282 94 175 3 108 116 108
+
+stop
+false
+0
+Circle -2674135 false false 0 0 300
+Line -2674135 false 45 45 255 255
+Line -2674135 false 30 60 240 270
+Line -2674135 false 60 30 270 240
 
 target
 false
