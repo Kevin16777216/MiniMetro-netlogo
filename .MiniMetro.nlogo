@@ -24,6 +24,9 @@ globals[
   colorsUsed;
 
   lineList; list of all currently using lines
+
+  isDraggingTrain;checks if a train is selected and being dragged around
+  dragTrainPrevious;the state of isDraggingTrain one tick prior
 ]
 ;___INITIALIZE BREEDS__________________________________
 breed[paths path]
@@ -64,6 +67,26 @@ stations-own[
   stationID;
   connectingLines; list of all lines that get here
   endPointDir; list of all endpoint directions to avoid overlap
+]
+breed[segments segment]
+segments-own[
+  minX
+  minY
+  maxX
+  maxY
+  initX
+  initY
+  endX
+  endY
+  segmentType; beginning or end of path
+  myPath;the path that the segment's a part of
+  mSeg
+  bSeg
+  isVertical
+]
+breed[trains train]
+trains-own[
+  lineOfTrain;the line the train is on
 ]
 breed[lines line]
 lines-own[
@@ -448,8 +471,6 @@ to addStation [newStation]
 
   ]
 end
-;_____Segment functions______________________________
-
 ;_____EndStation functions___________________________
 to generatePlast [plastPath plastLine directionChooser]
   hatch-plasts 1[
@@ -520,6 +541,81 @@ to updatePlasts
       ]
     ]
   ]
+end
+;_____Segment functions______________________________
+to initializeSegment [myStation pathI segType]
+  set segmentType segType
+  set initX [xcor] of ([myStation] of pathI)
+  set endX [vertexX] of pathI
+  set initY [ycor] of ([myStation] of pathI)
+  set endY [vertexY] of pathI
+  ifelse initX < endX
+  [set minX initX]
+  [set minX endX]
+  ifelse initY < endY
+  [set minY initY]
+  [set minY endY]
+  ifelse minX = initX
+  [set maxX endX]
+  [set maxX initX]
+  ifelse initX = endX
+  [set isVertical true]
+  [set isVertical false]
+end
+
+to findEqSeg
+  ifelse isVertical
+  [
+    set mSeg (initX - endX) / (initY - endY)
+    set bSeg initX - (initY * mSeg)
+  ]
+  [
+    set mSeg (initY - endY) / (initX - endX)
+    set bSeg initY - (initX * mSeg)
+  ]
+end
+;_______Dragging Trains___________________
+to-report distPointSeg [aEq cEq xPoint yPoint] ;aEq is equal to the slope (m), cEq is equal to the intercept (b)
+  report (abs ((aEq * xPoint) + yPoint + cEq)) / ((aEq * aEq) + 1)
+end
+
+to isCloseToPath
+  if isDraggingTrain [
+    if (distPointSeg  ([mSeg] of min-one-of segments [distancexy mouse-xcor mouse-ycor]) ([bSeg] of min-one-of segments [distancexy mouse-xcor mouse-ycor]) mouse-xcor mouse-ycor) <= trackWidth / 3 [
+      putTrainDown
+    ]
+  ]
+end
+
+to putTrainDown
+  ask min-one-of trains [distancexy mouse-xcor mouse-ycor] [die]
+  create-trains 1 [
+    set shape "train"
+    set color [pcolor] of lineOfTrain
+    setxy ((([initY] of min-one-of segments [distance myself]) + ([endY] of min-one-of segments [distance myself])) / 2) ((([initX] of min-one-of segments [distance myself]) + ([endX] of min-one-of segments [distance myself])) / 2)
+    if [mSeg] of min-one-of segments [distance myself] = 0 [
+      set heading 90
+    ]
+    if [mSeg] of min-one-of segments [distance myself] = 1 [
+      set heading 45
+    ]
+    if [mSeg] of min-one-of segments [distance myself] = -1 [
+      set heading 135
+    ]
+    if [isVertical] of min-one-of segments [distance myself] = true [
+      set heading 180
+    ]
+  ]
+  set isDraggingTrain false
+end
+
+to dragTrain
+  if mouse-down? and mouse-inside? [
+    if round mouse-xcor >= -193 and round mouse-xcor <= -187 and round mouse-ycor >= -193 and round mouse-ycor <= -187 [
+      set isDraggingTrain true
+    ]
+  ]
+  set dragTrainPrevious isDraggingTrain
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -939,7 +1035,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.1
+NetLogo 6.0.2
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
