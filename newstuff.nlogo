@@ -469,11 +469,21 @@ to dragTrain
   if mouse-down? and mouse-inside? [
     if round mouse-xcor >= -193 and round mouse-xcor <= -187 and round mouse-ycor >= -193 and round mouse-ycor <= -187 [
       set isDraggingTrain true
+      crt 1 [set shape "train" set color gray + 2 setxy mouse-xcor mouse-ycor]
     ]
+    if dragTrainPrevious = true and mouse-down? = true [
+      crt 1 [set shape "train" set color gray + 2 setxy mouse-xcor mouse-ycor]
+    ]
+    if mouse-down? = false [
+      set isDraggingTrain false
+    ]
+    if isDraggingTrain = false [
+      ask min-one-of trains [distancexy mouse-xcor mouse-ycor] [
+        die
+      ]
   ]
   set dragTrainPrevious isDraggingTrain
 end
-
 
 
 
