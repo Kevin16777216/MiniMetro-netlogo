@@ -271,6 +271,12 @@ to updatePath
     set sx ([xcor] of stationB)
     set sy ([ycor] of stationB)
   ]
+  ask segmentA[
+       die
+  ]
+  ask segmentB[
+       die
+  ]
   let ox xcor
   let oy ycor
   canTurn sx sy
@@ -493,19 +499,42 @@ end
 
 to updateLines
   ask lines[
-   set currentBeginning item 0 linePaths
-   set currentEnd (last linePaths)
   if (length linePaths) = 0[
+      decomposeLine
+  ]
+    set currentBeginning item 0 linePaths
+   set currentEnd (last linePaths)
+  ]
+end
+to decomposeLine
      ask startPlast[
        die
      ]
      ask endPlast[
        die
      ]
-      set colorsUsed (colorsUsed - 1)
+  let i 0
+  while [i < (length linePaths)][
+    ask item i linePaths[
+       ask segmentA[
+           die
+       ]
+       ask segmentB[
+           die
+       ]
+       ask stationA[
+          set connectingLines remove self connectingLines
+       ]
+       ask stationB[
+          set connectingLines remove self connectingLines
+
+       ]
+        die
+    ]
+    set i (i + 1)
+  ]
+     set colorsUsed (colorsUsed - 1)
     die
-  ]
-  ]
 end
 to-report lowestUntaken
 
@@ -590,7 +619,7 @@ to updatePlasts
     if (distancexy mouse-xcor mouse-ycor) < (trackWidth / 2)[
       set color color + 4
       if mouse-down?[
-         ;myPlastPath 0 lineID true
+        ask myPlastLine [decomposeLine]
 
       ]
     ]
@@ -599,9 +628,9 @@ end
 ;_____Segment functions______________________________
 to initializeSegment [myStation pathI segType]
   set segmentType segType
-  set initX [xcor] of ([myStation] of pathI)
+  set initX [xcor] of (myStation)
   set endX [vertexX] of pathI
-  set initY [ycor] of ([myStation] of pathI)
+  set initY [ycor] of (myStation)
   set endY [vertexY] of pathI
   ifelse initX < endX
   [set minX initX]
@@ -615,6 +644,14 @@ to initializeSegment [myStation pathI segType]
   ifelse initX = endX
   [set isVertical true]
   [set isVertical false]
+  findEqSeg
+  ask pathI[
+    ifelse segmentType = "A"[
+      set segmentA self
+    ][
+      set segmentB self
+    ]
+  ]
 end
 
 to findEqSeg
