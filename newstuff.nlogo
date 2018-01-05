@@ -63,6 +63,8 @@ segments-own[
 breed[trains train]
 trains-own[
   lineOfTrain;the line the train is on
+  passengerList (list)
+]
 breed[stations station]
 stations-own[
   shapeType; what people get off here
@@ -502,17 +504,15 @@ end
 
 
 
-
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 210
 10
-619
-420
+1011
+812
 -1
 -1
-1.0
+1.98
 1
 10
 1
@@ -552,39 +552,23 @@ NIL
 @#$#@#$#@
 ## WHAT IS IT?
 
-(a general understanding of what the model is trying to show or explain)
+This is a recreation of the game Mini Metro, in which the player is given a map, some obstacles and different resources which they need to use to build the most efficient subway system as possible.
 
 ## HOW IT WORKS
 
-(what rules the agents use to create the overall behavior of the model)
+We created breeds for each aspect, or "object" of the game (i.e. stations, lines, trains, etc.) and gave them their own properties, variables and other individualized elements in order for each "object" to do its own thing.
 
 ## HOW TO USE IT
 
-(how to use the model, including a description of each of the items in the Interface tab)
-
-## THINGS TO NOTICE
-
-(suggested things for the user to notice while running the model)
+Run the tutorial and read the on-screen rules and instructions on how to play the game.
 
 ## THINGS TO TRY
 
-(suggested things for the user to try to do (move sliders, switches, etc.) with the model)
-
-## EXTENDING THE MODEL
-
-(suggested things to add or change in the Code tab to make the model more complicated, detailed, accurate, etc.)
-
-## NETLOGO FEATURES
-
-(interesting or unusual features of NetLogo that the model uses, particularly in the Code tab; or where workarounds were needed for missing features)
-
-## RELATED MODELS
-
-(models in the NetLogo Models Library and elsewhere which are of related interest)
+Try increasing the speed of the game or changing the game mode. There are three game modes: normal, extreme, and endless.
 
 ## CREDITS AND REFERENCES
 
-(a reference to the model's URL on the web if it has one, as well as any other necessary credits, citations, and links)
+ https://dinopoloclub.com/minimetro/
 @#$#@#$#@
 default
 true
@@ -909,7 +893,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.0.2
+NetLogo 6.0.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
