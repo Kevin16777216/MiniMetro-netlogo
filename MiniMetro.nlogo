@@ -897,7 +897,7 @@ to updateTrain
         ifelse distancexy [xcor] of ([stationA] of (item stationIndex ([linePaths] of lineOfTrain))) [ycor] of ([stationA] of (item stationIndex ([linePaths] of lineOfTrain))) < (trackWidth / 8)[
          setxy [xcor] of ([stationA] of (item stationIndex ([linePaths] of lineOfTrain))) [ycor] of ([stationA] of (item stationIndex ([linePaths] of lineOfTrain)))
          set reachedCheckPoint true
-            set pickupSpeed trainSpeed
+            set pickupSpeed trainSpeed ;REPLACE TRAIN SPEED WITH ANY # of ticks
           set stationIndex stationIndex - 1
           if stationIndex < 0[
             set trainDirection 1
