@@ -14,3 +14,6 @@
  +1/12/18   Kevin   added train initialization code
  +1/12/18   Kevin   added finshing train code
  +1/12/18   Julian  added passenger code
+ +1/13/18   Kevin   updated track system
+ +1/14/18   Kevin   updated train code
+ +1/15/18   Kevin   fixed minor bugs
