@@ -60,8 +60,8 @@ paths-own[;1/5 paths are the objects that repsent a connection between 2 station
   finalized;checks if the path should be added to final list
   potentialStations; chain(list) of stations when joining multiple stations at once
   pathsCreated; temporary list of all paths in an editing sequence
-  vertexX;vertex of bend
-  vertexY;
+  vertexX;vertex x and y of bend
+  vertexY
   segmentA;first and latter segments
   segmentB;
   endPath?;is this path ending the line?
@@ -105,8 +105,8 @@ segments-own[;1/6
   endY
   segmentType; beginning or end of path
   myPath;the path that the segment's a part of
-  mSeg
-  bSeg
+  mSeg;slope of segment
+  bSeg;intercept of segment (origin lies at the center of the world)
   isVertical
   distMouse
   segmentLength
@@ -162,9 +162,10 @@ passengers-own[
   passengerType;
   passengerStation;station of passenger
   myTrain
-  ix;
+  ix
   iy
 ]
+;___Set the game up__________
 to setup
   ca
   reset-ticks
@@ -215,8 +216,6 @@ to setup
     generateStation rx ry
     set m (m + 1)
   ]
-
-
   crt 1 [
     set shape "trainButton"
     set size (trackWidth )
@@ -244,6 +243,8 @@ to setup
 end
 
 ;___Path Functions_________________________________
+
+;Tests when the user clicks on a station, then initializes the updatePath procedure
 to generatePath [A B line-color isEdit]
   create-paths 1 [
     set isReal true
@@ -281,7 +282,6 @@ to generatePath [A B line-color isEdit]
       set finalized false
     ][
       permanentPath B
-
     ]
   ]
 end
@@ -291,11 +291,11 @@ to-report containsID [ID caller]
     if  [stationID] of (item i ([potentialStations] of caller)) = ID [
       report true
     ]
-
     set i (i + 1)
   ]
   report false
 end
+;Updates the path being edited each frame it's being edited
 to updatePath
   if beingEdited [;is it being edited?
     ifelse beingEdited and not(mouse-down?)[ ;if just done editing, now what?
@@ -389,7 +389,6 @@ to updatePath
   let oy ycor
   canTurn sx sy
   facexy ox oy
-  set x (xcor + (random 5)
   set startDir heading
   let px xcor
   let py ycor
@@ -412,6 +411,7 @@ to updatePath
   pu
 
 end
+;Finalizes the characteristics for each path once it's finished being edited
 to permanentPath [B]
   let m 0
   ask B[
@@ -422,11 +422,13 @@ to permanentPath [B]
   set finalized true
   set sIDB m
 end
+;for testing purposes
 to dealMultiline
   ask stationA[
     show [direction] of item 1 connectinglines
   ]
 end
+;Highlights segment when mouse is hovering over it
 to highlightLine[ox oy px py highlight]
   pu
   setxy ox oy
@@ -450,6 +452,7 @@ to highlightLine[ox oy px py highlight]
   setxy px py
   pu
 end
+;Reports the direction each segment is facing
 to-report getDirection [x y]
   ifelse beingEdited[
     setxy ([xcor] of (item ((length potentialStations) - 1) potentialStations)) ([ycor] of (item ((length potentialStations) - 1) potentialStations))
@@ -459,7 +462,8 @@ to-report getDirection [x y]
   facexy x y
   report ((floor (heading / 22.5)) + 1)
 end
-to canTurn [x y] ;1/2 draws segments basd of 2 points
+;Draws each segments based on its endpoints
+to canTurn [x y]
   ;N
   if (direction mod 16) = 1[
     setxy xcor (y - abs(x - xcor))
@@ -518,6 +522,7 @@ to canTurn [x y] ;1/2 draws segments basd of 2 points
   ]
 
 end
+;Renders the paths
 to renderPaths
   let pathCount 0
   while [pathCount < (length pathIDList)][
@@ -544,7 +549,9 @@ to renderPaths
   set isGenerating false
   set isAddPath false
 end
+
 ;___Main Loop_________________________________
+
 to go
   every 1 / 60[
     clear-drawing
@@ -569,7 +576,10 @@ to go
     tick
   ]
 end
+
 ;___Station Functions_________________________________
+
+;Creates a new station (with coordinates x and y) and declares its own stations-own variables
 to generateStation [x y]
   create-stations 1 [
     setxy x y
@@ -591,6 +601,7 @@ to generateStation [x y]
     set maxCapacity 16
   ]
 end
+;Updates each station's station-own variables
 to updateStations
   let isClicked false
   let clickedStation 0
@@ -622,7 +633,10 @@ to updateStations
     generatePath (one-of stations with [stationID = clickedStation]) 0 lowestUntaken true
   ]
 end
+
 ;___Line Functions_________________________________
+
+;Initializes generation of a line whenever a new line is created
 to generateLine[x y lineColor initalLines initalPaths]
   create-lines 1[
     setxy x y
@@ -658,6 +672,7 @@ to generateLine[x y lineColor initalLines initalPaths]
     ]
   ]
 end
+;Adds a station to a line's list of stations
 to addStation [newStation];unused code,planned to make lines that loop.
   ifelse (item 0 lineStations) = newStation[
     set isLooping true
@@ -670,6 +685,7 @@ to addStation [newStation];unused code,planned to make lines that loop.
 
   ]
 end
+;Updates the lines
 to updateLines
   ask lines[
     if (length linePaths) = 0[
@@ -686,6 +702,7 @@ to updateLines
     set currentEnd (last linePaths)
   ]
 end
+;Removes a line
 to decomposeLine
   if endPlast != nobody[
     ask startPlast[
@@ -736,7 +753,10 @@ end
 to-report lowestUntaken
   report position false colorList
 end
+
 ;_____EndStation functions___________________________
+
+;Initializes generation of the turtle at the end of each line (known as a plast)
 to generatePlast [plastPath plastLine directionChooser]
   hatch-plasts 1[
     set myplastPath plastPath
@@ -822,6 +842,7 @@ to generatePlast [plastPath plastLine directionChooser]
     set defY ycor
   ]
 end
+;Updates plasts
 to updatePlasts
   let isLineUpdate false
   let isLineAsker 0
@@ -840,7 +861,10 @@ to updatePlasts
     ]
   ]
 end
+
 ;_____Segment functions______________________________
+
+;Generates each segment as each path is created
 to initializeSegment [myStation pathI segType]
   set segmentType segType
   set myPath pathI
@@ -872,6 +896,7 @@ to initializeSegment [myStation pathI segType]
   findEqSeg
   set hidden? true
 end
+;Updates each segment at every tick
 to updateSegment
   if myPath = nobody[
     die
@@ -904,6 +929,7 @@ to updateSegments
     updateSegment
   ]
 end
+;Finds the equation of each segment in slope-intercept form
 to findEqSeg
   ifelse isVertical
   [
@@ -915,7 +941,10 @@ to findEqSeg
     set bSeg initY - (initX * mSeg)
   ]
 end
+
 ;_______Dragging Trains___________________
+
+;Distance formula, used for dragging trains
 to-report distPointSeg [aEq cEq xPoint yPoint segment-item] ;aEq is equal to the slope (m), cEq is equal to the intercept (b) run by a segment.
   ifelse ([isVertical] of segment-item)[
     report abs (([initX] of segment-item) - xPoint)
@@ -926,8 +955,8 @@ to-report distPointSeg [aEq cEq xPoint yPoint segment-item] ;aEq is equal to the
     report (abs ((aEq * xPoint) - yPoint + cEq)) / ((aEq * aEq) + 1)
   ]
 end
+;Highlights nearest segment
 to isCloseToPath
-  ;report
   ask paths[
     set isHighlighted 0
   ]
@@ -936,7 +965,6 @@ to isCloseToPath
   if near != nobody[
     ask near[
       set minDist distPoint mouse-xcor mouse-ycor
-      ;show minDist
     ]
   ]
   ifelse (minDist <= lineThreshold) and near != nobody[
@@ -970,13 +998,7 @@ end
 to-report getNearestSegment [x y];1/10 gets nearest segment form mouse (to drag trains onto lines)
   report min-one-of segments [distPoint x y]
 end
-to checkTrain;1/4 old unused code.
-  if isDraggingTrain [
-    isCloseToPath
-    ;putTrainDown
-
-  ]
-end
+;Spawns a train when the user clicks the train button and holds down, and places it on the line it is closest to if it's close enough
 to createTrain [initStation initPath dir trainLine isFinalized checkPoint]
   hatch-trains 1[
     set availableTrains availableTrains - 1
@@ -1000,7 +1022,10 @@ to createTrain [initStation initPath dir trainLine isFinalized checkPoint]
     ]
   ]
 end
-;____trainButton____________________
+
+;____Train Button____________________
+
+;Updates the train button
 to updateTrainButton
   let return false
   ask trainButton[
@@ -1016,11 +1041,9 @@ to updateTrainButton
   ]
 
 end
+;Updates the state of each train, its passengers, etc. and makes it move
 to updateTrain
   ifelse trainFinalized[
-    ;let nearest getNearestSegment xcor ycor
-    ;set currentSegment nearest
-    ;set currentPath [myPath] of currentSegment
     if lineOftrain = nobody[
       trainDeath
     ]
@@ -1028,19 +1051,6 @@ to updateTrain
       trainDeath
     ]
     set color [color] of lineofTrain + 2
-    ;ifelse trainDirection = 0[
-    ;  ifelse [segmentType] of currentSegment = "B"[
-    ;    facexy [endX] of currentSegment [endY] of currentSegment
-    ;  ][
-    ;    facexy ([xcor] of ([stationA] of currentPath)) ([ycor] of ([stationA] of currentPath))
-    ;  ]
-    ;][
-    ;  ifelse [segmentType] of currentSegment = "A"[
-    ;    facexy [endX] of currentSegment [endY] of currentSegment
-    ;  ][
-    ;    facexy ([xcor] of ([stationB] of currentPath)) ([ycor] of ([stationB] of currentPath))
-    ;  ]
-    ;]
     if isPaused[
       stop
     ]
@@ -1179,6 +1189,7 @@ to updateTrain
   ]
 
 end
+;Makes each train rotate as it reaches a vertex or curve in the track
 to rotate
   ifelse trainDirection = 0 [
     ifelse [segmentType] of currentSegment = "A"[
@@ -1194,6 +1205,7 @@ to rotate
     ]
   ]
 end
+;Sets the direction of each train at each tick
 to getTrainDirection
   let nearest (getNearestSegment mouse-xcor mouse-ycor)
   set currentSegment nearest
@@ -1220,6 +1232,7 @@ to getTrainDirection
     set trainDirection 0
   ]
 end
+;Kills a train
 to trainDeath
   set availableTrains availableTrains + 1
   die
@@ -1229,7 +1242,8 @@ to updateTrains
     updateTrain
   ]
 end
-;_________PauseButtonCode_________________________________________
+;_________Pause Button_________________________________________
+;Updates the pause/play button
 to updatePlayButton
   ask playButton[
     if ((distancexy mouse-xcor mouse-ycor) < (size / 2)) and mouse-inside? and mouse-down? and (not lastFrameClicked)[
@@ -1243,18 +1257,20 @@ to updatePlayButton
   ]
 end
 ;______numberDisplay____________
+;Updates the train counter
 to updateDisplay [num x y]
   setxy x y
   set color grey
   set size trackWidth
   set shape (word num)
 end
-;_____passengerInfo___________________
+;_____Passenger Code___________________
 to test
   ask (station 0)[
     generatePassenger
   ]
 end
+;Spawns passengers at stations
 to generatePassenger
   hatch-passengers 1[
     set onTrain False
@@ -1276,6 +1292,7 @@ to generatePassenger
     doAI passengerStation passengerType
   ]
 end
+;Updates the state of each passenger at each tick
 to updatePassengers
   ask passengers[
     ifelse (not onTrain)[
@@ -1295,6 +1312,7 @@ to updatePassengers
     ]
   ]
 end
+;Makes passengers follow their train when their train comes
 to followTrain
   set size trackWidth / 4
   if myTrain = nobody[
@@ -1316,6 +1334,7 @@ to followTrain
   ]
   set heading ([heading] of mytrain)
 end
+;Code that determines which way each passenger is going
 to doAI [currentStation currentPassengerType];I'm aware there are better ways to do this but i'm on a time crunch right now
   let j sort-on [distancexy ([xcor] of myself) ([ycor] of myself)] (stations with [((length clines) > 0) and (shapeType = currentPassengerType)])
   let i 0
@@ -1369,6 +1388,7 @@ to doAI [currentStation currentPassengerType];I'm aware there are better ways to
   ;show askTrainType
   ;show minIndex
 end
+;Makes passenger get off station and get on train when train comes
 to decomposePassenger [futureTrain]
   let j tID
   ask passengerStation[
@@ -1383,6 +1403,7 @@ to decomposePassenger [futureTrain]
   ]
   set onTrain true;
 end
+;Makes passenger get off train at appropriate station
 to kickTrain
   ask myTrain[
     set myPeople (remove myself myPeople)
